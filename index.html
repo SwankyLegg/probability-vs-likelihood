@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Probability vs. Likelihood</title>
+    <script src="/lib/d3.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .section {
+            width: 800px;
+            margin: 0 auto 20px auto;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: nowrap;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 5px;
+            flex: 1;
+        }
+        .range-controls .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 5px;
+            width: auto;
+            flex: 1;
+        }
+        .range-controls {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            padding: 15px 20px;
+            margin-top: 10px;
+        }
+        label {
+            margin-bottom: 0;
+            white-space: nowrap;
+            font-weight: 500;
+            user-select: none;
+            color: #333;
+        }
+        input[type="number"] {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            background-color: white;
+            color: #333;
+            width: 100%;
+            box-sizing: border-box;
+            transition: border-color 0.2s ease;
+        }
+
+        input[type="number"]:focus,
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #2196F3;
+        }
+
+        input[type="number"]:read-only,
+        input[type="text"]:read-only {
+            background-color: #f8f9fa;
+            cursor: not-allowed;
+        }
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        input:checked + .toggle-slider {
+            background-color: #2196F3;
+        }
+        input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
+        .mode-label {
+            font-weight: 500;
+            cursor: pointer;
+            user-select: none;
+            transition: color 0.2s ease;
+        }
+        .active-mode {
+            color: #2196F3;
+        }
+        .mode-label:hover {
+            opacity: 0.8;
+        }
+        .range-controls {
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            padding: 10px 20px;
+            margin-top: 10px;
+        }
+        .range-controls h3 {
+            margin: 0 0 15px 0;
+            font-size: 1.1em;
+            color: #333;
+            text-align: center;
+        }
+        .range-inputs {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+        .visualization-container {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-sizing: border-box;
+            user-select: none;
+            width: 100%;
+        }
+        #plot {
+            width: 100%;
+            height: 400px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        .explanation {
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            line-height: 1.6;
+        }
+        .input-with-label {
+            position: relative;
+            width: 100%;
+        }
+        .input-with-label input {
+            width: 100%;
+            padding-right: 20px;
+        }
+        .unit-label {
+            position: absolute;
+            right: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #666;
+            user-select: none;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+        <h1 style="text-align: center;">Probability vs. Likelihood</h1>
+        
+        <div class="section">
+            <div class="toggle-container">
+                <span class="mode-label probability-label active-mode">Probability</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="mode-toggle">
+                    <span class="toggle-slider"></span>
+                </label>
+                <span class="mode-label likelihood-label">Likelihood</span>
+            </div>
+
+            <div class="visualization-container">
+                <div class="controls">
+                    <div class="control-group">
+                        <label for="x-value">X Value</label>
+                        <input 
+                            type="number" 
+                            id="x-value" 
+                            name="x-value"
+                            value="0" 
+                            step="0.1"
+                            aria-label="Current X value">
+                    </div>
+                    <div class="control-group likelihood-field" style="display: none;">
+                        <label for="likelihood-value">Probability density</label>
+                        <input 
+                            type="number" 
+                            id="likelihood-value" 
+                            name="likelihood-value"
+                            value="0"
+                            min="0"
+                            step="0.0001"
+                            aria-label="Probability density">
+                    </div>
+                    <div class="control-group probability-fields">
+                        <label for="less-than-prob">P(X ≤ x)</label>
+                        <div class="input-with-label">
+                            <input 
+                                type="number" 
+                                id="less-than-prob" 
+                                name="less-than-prob"
+                                value="50.00"
+                                min="0"
+                                max="100"
+                                step="0.01"
+                                aria-label="Probability of X being less than or equal to current value"
+                                aria-describedby="less-than-prob-description">
+                            <span class="unit-label">%</span>
+                        </div>
+                        <span id="less-than-prob-description" class="sr-only">Probability of X being less than or equal to current value</span>
+                    </div>
+                    <div class="control-group probability-fields">
+                        <label for="greater-than-prob">P(X > x)</label>
+                        <div class="input-with-label">
+                            <input 
+                                type="number" 
+                                id="greater-than-prob" 
+                                name="greater-than-prob"
+                                value="50.00"
+                                min="0"
+                                max="100"
+                                step="0.01"
+                                aria-label="Probability of X being greater than current value"
+                                aria-describedby="greater-than-prob-description">
+                            <span class="unit-label">%</span>
+                        </div>
+                        <span id="greater-than-prob-description" class="sr-only">Probability of X being greater than current value</span>
+                    </div>
+                </div>
+
+                <div id="plot"></div>
+
+                <div class="controls range-controls">
+                    <div class="control-group">
+                        <label for="range-min">Minimum</label>
+                        <input 
+                            type="number" 
+                            id="range-min" 
+                            name="range-min"
+                            value="-10" 
+                            step="1"
+                            aria-label="Minimum range">
+                    </div>
+                    <div class="control-group">
+                        <label for="range-max">Maximum</label>
+                        <input 
+                            type="number" 
+                            id="range-max" 
+                            name="range-max"
+                            value="10" 
+                            step="1"
+                            aria-label="Maximum range">
+                    </div>
+                    <div class="control-group">
+                        <label for="mean">Mean (μ)</label>
+                        <input 
+                            type="number" 
+                            id="mean" 
+                            name="mean"
+                            value="0" 
+                            step="0.1"
+                            aria-label="Mean value">
+                    </div>
+                    <div class="control-group">
+                        <label for="sd">Standard Deviation (σ)</label>
+                        <input 
+                            type="number" 
+                            id="sd" 
+                            name="sd"
+                            value="1" 
+                            step="0.1"
+                            min="0.1"
+                            aria-label="Standard deviation">
+                    </div>
+                </div>
+            </div>
+
+            <div class="explanation">
+                <h3>Understanding the Visualization:</h3>
+                <p>• <strong>Probability</strong>: Given a fixed distribution (μ and σ), what's the probability of observing a specific value x?</p>
+                <p>• <strong>Likelihood</strong>: Given a fixed observation x, how likely is each possible distribution (μ and σ)?</p>
+                <p>Drag the handle along the curve to see how probability changes. Adjust mean and standard deviation to see how the distribution changes.</p>
+            </div>
+        </div>
+    </div>
+    <script type="module" src="./index.js"></script>
+    <script>
+        // Setup WebSocket connection for auto-refresh
+        // Only connect WebSocket in development mode
+        if (window.location.hostname === 'localhost') {
+            const ws = new WebSocket('ws://localhost:8080');
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.type === 'reload') {
+                    window.location.reload();
+                }
+            };
+        }
+    </script>
+</body>
+</html> 
