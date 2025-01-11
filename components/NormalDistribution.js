@@ -1,6 +1,6 @@
 export class NormalDistribution {
   constructor(containerId, options = {}) {
-    this.margin = { top: 10, right: 10, bottom: 30, left: 50 };
+    this.margin = { top: 10, right: 10, bottom: 20, left: 30 };
     this.container = d3.select(containerId);
     this.updateDimensions();
     this.showYAxisLabels = false;  // Initialize to false for probability mode
@@ -32,11 +32,29 @@ export class NormalDistribution {
     // Create handle last so it's on top
     this.setupHandle();
 
+    // Setup debounced resize handler
+    this.debouncedHandleResize = this.debounce(() => {
+      this.handleResize();
+    }, 250); // 250ms debounce delay
+
     // Setup resize observer
     this.resizeObserver = new ResizeObserver(() => {
-      this.handleResize();
+      this.debouncedHandleResize();
     });
     this.resizeObserver.observe(this.container.node());
+  }
+
+  // Debounce utility function
+  debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
   }
 
   updateDimensions() {
@@ -67,6 +85,10 @@ export class NormalDistribution {
     this.x.range([0, this.width]);
     this.y.range([this.height, 0]);
 
+    // Update area generators with new height
+    this.areaLeft.y0(this.height);
+    this.areaRight.y0(this.height);
+
     // Update axes
     this.svg.select(".x-axis")
       .attr("transform", `translate(0,${this.height})`)
@@ -80,6 +102,15 @@ export class NormalDistribution {
       const points = this.curveGroup.select(".distribution-line").datum();
       if (points) {
         this.updateCurve(points);
+
+        // Get current x value and find corresponding y value
+        const xValue = parseFloat(document.getElementById('x-value').value);
+        const closestPoint = points.reduce((prev, curr) => {
+          return Math.abs(curr.x - xValue) < Math.abs(prev.x - xValue) ? curr : prev;
+        });
+
+        // Update handle and lines
+        this.updateHandle(xValue, closestPoint.y);
       }
     }
   }

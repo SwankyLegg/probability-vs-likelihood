@@ -40,7 +40,8 @@
             flex: 1;
             min-width: 140px;
         }
-        .control-group.likelihood-field {
+        .control-group.likelihood-field,
+        .control-group.probability-fields {
             flex: 1;
         }
         .top-controls {
@@ -48,29 +49,40 @@
             gap: 20px;
             width: 100%;
             flex-wrap: nowrap;
+            margin-bottom: 20px;
         }
         .top-controls .control-group {
             flex: 1;
             min-width: 0;
+        }
+        .top-controls:last-child {
+            margin-top: 20px;
+            background-color: #f8f9fa;
         }
         .range-controls {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
             gap: 20px;
             background-color: #f8f9fa;
-            border-radius: 4px;
-            padding: 15px 20px;
-            margin-top: 10px;
+            margin-top: 20px;
             width: 100%;
             box-sizing: border-box;
         }
+        .range-pair {
+            display: flex;
+            gap: 20px;
+        }
+        .range-pair .control-group {
+            flex: 1;
+            min-width: 0;
+        }
         label {
             margin-bottom: 0;
-            white-space: normal;
+            white-space: nowrap;
             font-weight: 500;
             user-select: none;
             color: #333;
-            font-size: 14px;
+            font-size: 12px;
         }
         input[type="number"] {
             padding: 8px;
@@ -233,6 +245,14 @@
             user-select: none;
             pointer-events: none;
         }
+        @media (max-width: 800px) {
+            .top-controls:last-child {
+                flex-wrap: wrap;
+            }
+            .top-controls:last-child .control-group {
+                min-width: calc(50% - 10px);
+            }
+        }
         @media (max-width: 600px) {
             body {
                 padding: 0 10px;
@@ -240,20 +260,7 @@
             .section {
                 padding: 10px;
             }
-            .controls {
-                gap: 10px;
-            }
-            .control-group {
-                min-width: calc(50% - 10px);
-            }
             .top-controls {
-                gap: 10px;
-            }
-            .top-controls .control-group {
-                min-width: 0;
-            }
-            .range-controls {
-                padding: 10px;
                 gap: 10px;
             }
             #plot {
@@ -266,22 +273,12 @@
                 font-size: 24px;
                 margin: 15px 0;
             }
-            label {
-                font-size: 12px;
-            }
             input[type="number"] {
                 font-size: 13px;
                 padding: 6px;
             }
         }
         @media (max-width: 400px) {
-            .control-group {
-                min-width: 100%;
-            }
-            .controls {
-                flex-direction: column;
-                align-items: stretch;
-            }
             #plot {
                 height: 200px;
             }
@@ -312,6 +309,17 @@
                             value="0" 
                             step="0.1"
                             aria-label="Current X value">
+                    </div>
+                    <div class="control-group likelihood-field" style="display: none;">
+                        <label for="likelihood-value">Probability density</label>
+                        <input 
+                            type="number" 
+                            id="likelihood-value" 
+                            name="likelihood-value"
+                            value="0"
+                            min="0"
+                            step="0.0001"
+                            aria-label="Probability density">
                     </div>
                     <div class="control-group probability-fields">
                         <label for="less-than-prob">P(X ≤ x)</label>
@@ -349,21 +357,9 @@
                     </div>
                 </div>
 
-                <div class="control-group likelihood-field" style="display: none;">
-                    <label for="likelihood-value">Probability density</label>
-                    <input 
-                        type="number" 
-                        id="likelihood-value" 
-                        name="likelihood-value"
-                        value="0"
-                        min="0"
-                        step="0.0001"
-                        aria-label="Probability density">
-                </div>
-
                 <div id="plot"></div>
 
-                <div class="controls range-controls">
+                <div class="top-controls">
                     <div class="control-group">
                         <label for="range-min">Minimum</label>
                         <input 
