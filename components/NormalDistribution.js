@@ -175,7 +175,7 @@ export class NormalDistribution {
     this.curveGroup.selectAll(".area-left, .area-right")
       .style("display", isLikelihood ? "none" : "block");
 
-    // If switching to probability mode, ensure areas are updated
+    // Update shading in probability mode
     if (!isLikelihood) {
       const points = this.curveGroup.select(".distribution-line").datum();
       const xValue = parseFloat(document.getElementById('x-value').value);
@@ -215,21 +215,23 @@ export class NormalDistribution {
   updateHandle(xValue, yValue) {
     const xPos = this.x(xValue);
     const yPos = this.y(yValue);
-    const handleWidth = 16;
-    const handleHeight = 19;
 
-    // Position the handle with its tip on the line
+    // The SVG path's tip point is at (8, 18.6066)
+    const tipX = 8;
+    const tipY = 18.6066;
+
+    // Position the handle with its tip exactly on the curve point
     this.handle
-      .attr("transform", `translate(${xPos - handleWidth / 2},${yPos - handleHeight}) scale(1)`);
+      .attr("transform", `translate(${xPos - tipX},${yPos - tipY})`);
 
-    // Update vertical line to extend below the graph
+    // Update vertical line to extend from the curve point to the bottom
     this.verticalLine
       .attr("x1", xPos)
       .attr("y1", yPos)
       .attr("x2", xPos)
       .attr("y2", this.height);
 
-    // Update horizontal line to extend to Y axis
+    // Update horizontal line to extend from y-axis to the curve point
     this.horizontalLine
       .attr("x1", 0)
       .attr("y1", yPos)

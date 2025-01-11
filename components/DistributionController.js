@@ -274,7 +274,9 @@ export class DistributionController {
 
     // Toggle field visibility based on mode
     document.querySelector('.likelihood-field').style.display = isLikelihood ? 'block' : 'none';
-    document.querySelector('.probability-fields').style.display = isLikelihood ? 'none' : 'block';
+    document.querySelectorAll('.probability-fields').forEach(field => {
+      field.style.display = isLikelihood ? 'none' : 'block';
+    });
 
     if (isLikelihood) {
       this.fixedX = currentX;
@@ -284,8 +286,8 @@ export class DistributionController {
       const likelihood = MathUtils.normalPDF(currentX, mean, sd);
       document.getElementById('likelihood-value').value = likelihood.toFixed(4);
     } else {
-      // Update probability fields
-      this.updateHandle(currentX);
+      // Just update the probability fields without moving the handle
+      this.updateProbabilities();
     }
   }
 
