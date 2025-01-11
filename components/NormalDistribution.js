@@ -1,12 +1,12 @@
 export class NormalDistribution {
   constructor(containerId, options = {}) {
     this.margin = { top: 10, right: 10, bottom: 30, left: 50 };
-    this.width = (options.width || 760) - this.margin.left - this.margin.right;
-    this.height = (options.height || 400) - this.margin.top - this.margin.bottom;
+    this.container = d3.select(containerId);
+    this.updateDimensions();
     this.showYAxisLabels = false;  // Initialize to false for probability mode
     this.isLikelihoodMode = false; // Track the current mode
 
-    this.svg = d3.select(containerId)
+    this.svg = this.container
       .append("svg")
       .attr("width", this.width + this.margin.left + this.margin.right)
       .attr("height", this.height + this.margin.top + this.margin.bottom)
@@ -31,6 +31,57 @@ export class NormalDistribution {
 
     // Create handle last so it's on top
     this.setupHandle();
+
+    // Setup resize observer
+    this.resizeObserver = new ResizeObserver(() => {
+      this.handleResize();
+    });
+    this.resizeObserver.observe(this.container.node());
+  }
+
+  updateDimensions() {
+    const containerRect = this.container.node().getBoundingClientRect();
+    this.width = containerRect.width - this.margin.left - this.margin.right;
+    this.height = containerRect.height - this.margin.top - this.margin.bottom;
+  }
+
+  handleResize() {
+    // Store old dimensions
+    const oldWidth = this.width;
+    const oldHeight = this.height;
+
+    // Update dimensions
+    this.updateDimensions();
+
+    // Update SVG size
+    this.container.select("svg")
+      .attr("width", this.width + this.margin.left + this.margin.right)
+      .attr("height", this.height + this.margin.top + this.margin.bottom);
+
+    // Update drag overlay size
+    this.dragOverlay
+      .attr("width", this.width)
+      .attr("height", this.height);
+
+    // Update scales
+    this.x.range([0, this.width]);
+    this.y.range([this.height, 0]);
+
+    // Update axes
+    this.svg.select(".x-axis")
+      .attr("transform", `translate(0,${this.height})`)
+      .call(d3.axisBottom(this.x));
+
+    this.svg.select(".y-axis")
+      .call(d3.axisLeft(this.y));
+
+    // If dimensions actually changed, update the curve
+    if (oldWidth !== this.width || oldHeight !== this.height) {
+      const points = this.curveGroup.select(".distribution-line").datum();
+      if (points) {
+        this.updateCurve(points);
+      }
+    }
   }
 
   setupScales() {
@@ -90,16 +141,6 @@ export class NormalDistribution {
     this.svg.append("g")
       .attr("class", "y-axis")
       .call(d3.axisLeft(this.y).tickFormat(formatYNumber));
-
-    // Add Y axis label
-    this.yAxisLabel = this.svg.append("text")
-      .attr("transform", "rotate(-90)")
-      .attr("y", 0 - this.margin.left)
-      .attr("x", 0 - (this.height / 2))
-      .attr("dy", "1em")
-      .style("text-anchor", "middle")
-      .style("opacity", 0)  // Initially hidden
-      .text("Probability density");
   }
 
   toggleYAxisLabels(show) {
@@ -107,9 +148,6 @@ export class NormalDistribution {
     this.svg.select(".y-axis")
       .selectAll("text")
       .style("opacity", show ? 1 : 0);
-
-    // Also toggle the Y axis label visibility
-    this.yAxisLabel.style("opacity", show ? 1 : 0);
   }
 
   setupLine() {
@@ -175,7 +213,7 @@ export class NormalDistribution {
     this.curveGroup.selectAll(".area-left, .area-right")
       .style("display", isLikelihood ? "none" : "block");
 
-    // Update shading in probability mode
+    // If switching to probability mode, ensure areas are updated
     if (!isLikelihood) {
       const points = this.curveGroup.select(".distribution-line").datum();
       const xValue = parseFloat(document.getElementById('x-value').value);
