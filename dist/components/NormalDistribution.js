@@ -1,12 +1,12 @@
 export class NormalDistribution {
   constructor(containerId, options = {}) {
-    this.margin = { top: 10, right: 10, bottom: 30, left: 50 };
-    this.width = (options.width || 760) - this.margin.left - this.margin.right;
-    this.height = (options.height || 400) - this.margin.top - this.margin.bottom;
+    this.margin = { top: 10, right: 10, bottom: 20, left: 30 };
+    this.container = d3.select(containerId);
+    this.updateDimensions();
     this.showYAxisLabels = false;  // Initialize to false for probability mode
     this.isLikelihoodMode = false; // Track the current mode
 
-    this.svg = d3.select(containerId)
+    this.svg = this.container
       .append("svg")
       .attr("width", this.width + this.margin.left + this.margin.right)
       .attr("height", this.height + this.margin.top + this.margin.bottom)
@@ -31,6 +31,88 @@ export class NormalDistribution {
 
     // Create handle last so it's on top
     this.setupHandle();
+
+    // Setup debounced resize handler
+    this.debouncedHandleResize = this.debounce(() => {
+      this.handleResize();
+    }, 250); // 250ms debounce delay
+
+    // Setup resize observer
+    this.resizeObserver = new ResizeObserver(() => {
+      this.debouncedHandleResize();
+    });
+    this.resizeObserver.observe(this.container.node());
+  }
+
+  // Debounce utility function
+  debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
+  }
+
+  updateDimensions() {
+    const containerRect = this.container.node().getBoundingClientRect();
+    this.width = containerRect.width - this.margin.left - this.margin.right;
+    this.height = containerRect.height - this.margin.top - this.margin.bottom;
+  }
+
+  handleResize() {
+    // Store old dimensions
+    const oldWidth = this.width;
+    const oldHeight = this.height;
+
+    // Update dimensions
+    this.updateDimensions();
+
+    // Update SVG size
+    this.container.select("svg")
+      .attr("width", this.width + this.margin.left + this.margin.right)
+      .attr("height", this.height + this.margin.top + this.margin.bottom);
+
+    // Update drag overlay size
+    this.dragOverlay
+      .attr("width", this.width)
+      .attr("height", this.height);
+
+    // Update scales
+    this.x.range([0, this.width]);
+    this.y.range([this.height, 0]);
+
+    // Update area generators with new height
+    this.areaLeft.y0(this.height);
+    this.areaRight.y0(this.height);
+
+    // Update axes
+    this.svg.select(".x-axis")
+      .attr("transform", `translate(0,${this.height})`)
+      .call(d3.axisBottom(this.x));
+
+    this.svg.select(".y-axis")
+      .call(d3.axisLeft(this.y));
+
+    // If dimensions actually changed, update the curve
+    if (oldWidth !== this.width || oldHeight !== this.height) {
+      const points = this.curveGroup.select(".distribution-line").datum();
+      if (points) {
+        this.updateCurve(points);
+
+        // Get current x value and find corresponding y value
+        const xValue = parseFloat(document.getElementById('x-value').value);
+        const closestPoint = points.reduce((prev, curr) => {
+          return Math.abs(curr.x - xValue) < Math.abs(prev.x - xValue) ? curr : prev;
+        });
+
+        // Update handle and lines
+        this.updateHandle(xValue, closestPoint.y);
+      }
+    }
   }
 
   setupScales() {
@@ -90,16 +172,6 @@ export class NormalDistribution {
     this.svg.append("g")
       .attr("class", "y-axis")
       .call(d3.axisLeft(this.y).tickFormat(formatYNumber));
-
-    // Add Y axis label
-    this.yAxisLabel = this.svg.append("text")
-      .attr("transform", "rotate(-90)")
-      .attr("y", 0 - this.margin.left)
-      .attr("x", 0 - (this.height / 2))
-      .attr("dy", "1em")
-      .style("text-anchor", "middle")
-      .style("opacity", 0)  // Initially hidden
-      .text("Probability density");
   }
 
   toggleYAxisLabels(show) {
@@ -107,9 +179,6 @@ export class NormalDistribution {
     this.svg.select(".y-axis")
       .selectAll("text")
       .style("opacity", show ? 1 : 0);
-
-    // Also toggle the Y axis label visibility
-    this.yAxisLabel.style("opacity", show ? 1 : 0);
   }
 
   setupLine() {
@@ -215,21 +284,23 @@ export class NormalDistribution {
   updateHandle(xValue, yValue) {
     const xPos = this.x(xValue);
     const yPos = this.y(yValue);
-    const handleWidth = 16;
-    const handleHeight = 19;
 
-    // Position the handle with its tip on the line
+    // The SVG path's tip point is at (8, 18.6066)
+    const tipX = 8;
+    const tipY = 18.6066;
+
+    // Position the handle with its tip exactly on the curve point
     this.handle
-      .attr("transform", `translate(${xPos - handleWidth / 2},${yPos - handleHeight}) scale(1)`);
+      .attr("transform", `translate(${xPos - tipX},${yPos - tipY})`);
 
-    // Update vertical line to extend below the graph
+    // Update vertical line to extend from the curve point to the bottom
     this.verticalLine
       .attr("x1", xPos)
       .attr("y1", yPos)
       .attr("x2", xPos)
       .attr("y2", this.height);
 
-    // Update horizontal line to extend to Y axis
+    // Update horizontal line to extend from y-axis to the curve point
     this.horizontalLine
       .attr("x1", 0)
       .attr("y1", yPos)
