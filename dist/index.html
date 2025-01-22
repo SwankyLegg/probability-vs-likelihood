@@ -405,10 +405,17 @@
             </div>
 
             <div class="explanation">
-                <h3>Understanding the Visualization:</h3>
-                <p>• <strong>Probability</strong>: Given a fixed distribution (μ and σ), what's the probability of observing a specific value x?</p>
-                <p>• <strong>Likelihood</strong>: Given a fixed observation x, how likely is each possible distribution (μ and σ)?</p>
-                <p>Drag the handle along the curve to see how probability changes. Adjust mean and standard deviation to see how the distribution changes.</p>
+                <h3>Understanding the Visualization</h3>
+                <p>Drag the handle along the curve to see how probability changes. Adjust mean (μ) and standard deviation (σ) to see how the distribution changes. The shaded area represents the probability in probability mode, while the height of the curve at x represents the likelihood in likelihood mode.</p>
+                <p>While "probability" and "likelihood" are often used interchangeably in everyday conversation, they have distinct statistical meanings that are important to understand:</p>
+                <h4>Probability</h4>
+                <p>Given a fixed distribution (μ and σ), what's the probability of observing a specific value x? This is calculated by looking at the area under the curve for a given range of x values.</p>
+                <h4>Likelihood</h4>
+                <p>Given a fixed observation x, how likely is each possible distribution (μ and σ)? This helps us understand which distribution parameters best explain our observed data.</p>
+                <h4>Key Difference</h4>
+                <p>While probability measures the chance of data given fixed parameters, likelihood measures the plausibility of parameters given fixed data. Though they may seem similar, keeping this distinction clear is crucial for understanding statistical concepts like Maximum Likelihood Estimation.</p>
+
+                <p>This visualization is inspired by the excellent <a href="https://www.youtube.com/watch?v=XepXtl9YKwc" target="_blank">StatQuest video on Probability vs. Likelihood</a>.</p>
             </div>
         </div>
     </div>
