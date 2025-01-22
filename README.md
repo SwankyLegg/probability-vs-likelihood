@@ -2,6 +2,8 @@
 
 An interactive visualization demonstrating the difference between probability and likelihood in the context of a normal distribution. View the live demo at [https://swankylegg.github.io/probability-vs-likelihood/](https://swankylegg.github.io/probability-vs-likelihood/)
 
+I was bad at stats, so this is my attempt at redeeming myself after being inspired by this [YouTube video](https://www.youtube.com/watch?v=XepXtl9YKwc) from StatQuest.
+
 ## Overview
 
 This project provides an interactive D3.js visualization that helps users understand the fundamental difference between probability and likelihood in statistics. Users can:
